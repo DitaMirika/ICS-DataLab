@@ -145,8 +145,8 @@ NOTES:
  *   Max ops: 2
  *   Rating: 1
  */
-int signMask(void) {
-  return 1;
+int signMask(void){
+	return 1<<31;
 }
 
 // P2
@@ -157,8 +157,8 @@ int signMask(void) {
  *   Max ops: 8
  *   Rating: 2
  */
-int bitXor(int x, int y) {
-	return 2;
+int bitXor(int x,int y){
+	return ~(~x&~y)&~(x&y);
 }
 
 // P3
@@ -170,7 +170,7 @@ int bitXor(int x, int y) {
  *   Rating: 3
  */
 int negativePart(int x){
-  return 3;
+	return (~x+1)&(x>>31);
 }
 
 
@@ -184,8 +184,10 @@ int negativePart(int x){
  *   Max ops: 12
  *   Rating: 4
  */
-int copyByteWithin(int x, int src, int dst) {
-  return 4;
+int copyByteWithin(int x,int src,int dst){
+	int l=src<<3,r=dst<<3;
+	int b=(x>>l)&255,m=255<<r;
+	return (x&~m)|(b<<r);
 }
 
 // P5
@@ -197,8 +199,10 @@ int copyByteWithin(int x, int src, int dst) {
  *   Max ops: 20
  *   Rating: 4
  */
-int logicalShift(int x, int n) {
-  return 5;
+int logicalShift(int x,int n){
+	int m=~(1<<31);
+	m=((m>>n)<<1)|1;
+	return (x>>n)&m;
 }
 
 // P6
@@ -209,8 +213,12 @@ int logicalShift(int x, int n) {
  *   Max ops: 18
  *   Rating: 4
  */
-int swapNibblePairs(int x) {
-  return 6;
+int swapNibblePairs(int x){
+	int m=15|(15<<8);
+	int l,r;
+	m=m|(m<<16);
+	l=(x&m)<<4; r=(x>>4)&m;
+	return l|r;
 }
 
 // P7
@@ -222,8 +230,10 @@ int swapNibblePairs(int x) {
  *   Max ops: 8
  *   Rating: 4
  */
-int secondLowestZeroBit(int x) {
-  return 7;
+int secondLowestZeroBit(int x){
+	int y=~x;
+	y=y&(y+~0);
+	return y&(~y+1);
 }
 
 // P8
@@ -235,8 +245,13 @@ int secondLowestZeroBit(int x) {
  *   Max ops: 56
  *   Rating: 5
  */
-int oddParity(int x) {
-  return 8;
+int oddParity(int x){
+	x=x^(x>>16);
+	x=x^(x>>8);
+	x=x^(x>>4);
+	x=x^(x>>2);
+	x=x^(x>>1);
+	return !(x&1);
 }
 
 // P9
@@ -248,8 +263,12 @@ int oddParity(int x) {
  *   Max ops: 16
  *   Rating: 5
  */
-int rotateRightBits(int x, int n) {
-  return 9;
+int rotateRightBits(int x,int n){
+	int k=n&31,l=(~k+1)&31;
+	int m=~(1<<31),a,b;
+	m=((m>>k)<<1)|1;
+	a=(x>>k)&m; b=x<<l;
+	return a|b;
 }
 
 // P10
@@ -263,8 +282,12 @@ int rotateRightBits(int x, int n) {
  *   Max ops: 24
  *   Rating: 5
  */
-int roundEvenPow2(int x, int n) {
-  return 10;
+int roundEvenPow2(int x,int n){
+	int q=x>>n,m=(1<<n)+~0;
+	int r=x&m,h=1<<(n+~0);
+	int gt=((h+~r+1)>>31)&1,eq=!(r^h);
+	int up=gt|(eq&(q&1));
+	return (q+up)<<n;
 }
 
 // P11
@@ -279,8 +302,11 @@ int roundEvenPow2(int x, int n) {
  *   Max ops: 32
  *   Rating: 5
  */
-int midpointTowardFirst(int x, int y) {
-  return 11;
+int midpointTowardFirst(int x,int y){
+	int a=x>>1,b=y>>1,rx=x&1,ry=y&1;
+	int mid=a+b+(rx&ry),d=b+~a+1;
+	int gt=((d>>31)&1)|((!d)&rx&(!ry));
+	return mid+((rx^ry)&gt);
 }
 
 
@@ -293,8 +319,14 @@ int midpointTowardFirst(int x, int y) {
  *   Max ops: 48
  *   Rating: 7
  */
-int isBetweenEitherOrder(int x, int a, int b) {
-  return 12;
+int isBetweenEitherOrder(int x,int a,int b){
+	int s=x>>31,sa=a>>31,sb=b>>31;
+	int da=(x+~a+1)>>31,db=(x+~b+1)>>31;
+	int pa=s^sa,pb=s^sb;
+	int la=((pa&s)|(~pa&da))&1,lb=((pb&s)|(~pb&db))&1;
+	int ea=!(x^a),eb=!(x^b);
+	int gea=!la,lea=la|ea,geb=!lb,leb=lb|eb;
+	return (gea&leb)|(geb&lea);
 }
 
 // P13
@@ -306,8 +338,14 @@ int isBetweenEitherOrder(int x, int a, int b) {
  *   Max ops: 30
  *   Rating: 7
  */
-int mul5Sat(int x) {
-  return 13;
+int mul5Sat(int x){
+	int a=x+x,b=a+a,c=b+x;
+	int s=x>>31;
+	int o1=(x^a)>>31,o2=(a^b)>>31,o3=(x^c)>>31;
+	int o=o1|o2|o3;
+	int lo=1<<31,hi=~lo;
+	int t=(s&lo)|(~s&hi);
+	return (o&t)|(~o&c);
 }
 
 // P14
@@ -319,8 +357,12 @@ int mul5Sat(int x) {
  *   Max ops: 52
  *   Rating: 7
  */
-int classifyAdd3(int x, int y, int z) {
-  return 14;
+int classifyAdd3(int x,int y,int z){
+	int s=x+y,t=s+z;
+	int o1=(~(x^y)&(x^s))>>31;
+	int o2=(~(s^z)&(s^t))>>31;
+	int d1=o1&((x>>31)|1),d2=o2&((s>>31)|1);
+	return d1+d2;
 }
 
 // P15
@@ -336,8 +378,26 @@ int classifyAdd3(int x, int y, int z) {
  *   Max ops: 60
  *   Rating: 7
  */
-unsigned floatScaleThreeHalves(unsigned uf) {
-  return 15;
+unsigned floatScaleThreeHalves(unsigned uf){
+	unsigned s=uf&0x80000000,e=(uf>>23)&255,m=uf&0x7fffff;
+	unsigned r;
+	if(e==255) return uf;
+	if(e) m=m|0x800000;
+	m=m*3;
+	if(!e){
+		r=m&1; m=m>>1;
+		if(r&&(m&1)) m=m+1;
+		return s|m;
+	}
+	if(m>=0x2000000){
+		r=m&3; m=m>>2; e=e+1;
+		if(r>2||(r==2&&(m&1))) m=m+1;
+	}else{
+		r=m&1; m=m>>1;
+		if(r&&(m&1)) m=m+1;
+	}
+	if(e==255) return s|0x7f800000;
+	return s|(e<<23)|(m&0x7fffff);
 }
 
 // P16
@@ -352,8 +412,25 @@ unsigned floatScaleThreeHalves(unsigned uf) {
  *   Max ops: 65
  *   Rating: 10
  */
-unsigned floatRoundEven(unsigned uf) {
-  return 16;
+unsigned floatRoundEven(unsigned uf){
+	unsigned s=uf&0x80000000,e=(uf>>23)&255,m=uf&0x7fffff;
+	unsigned mask,r,h;
+	int k;
+	if(e>=150) return uf;
+	if(e<126) return s;
+	if(e==126){
+		if(m) return s|0x3f800000;
+		return s;
+	}
+	k=150-e;
+	mask=(1u<<k)-1;
+	r=m&mask; h=1u<<(k-1);
+	m=(m|0x800000)&~mask;
+	if(r>h||(r==h&&((m>>k)&1))) m=m+(1u<<k);
+	if(m&0x1000000){
+		m=m>>1; e=e+1;
+	}
+	return s|(e<<23)|(m&0x7fffff);
 }
 
 // P17
@@ -366,8 +443,27 @@ unsigned floatRoundEven(unsigned uf) {
  *   Max ops: 40
  *   Rating: 10
  */
-unsigned float_i2f(int x) {
-  return 17;
+unsigned float_i2f(int x){
+	unsigned s=x&0x80000000,u=x,m,r,h;
+	int k=0,e;
+	if(!x) return 0;
+	if(x<0) u=~u+1;
+	m=u;
+	while(m>>1){
+		m=m>>1; k=k+1;
+	}
+	e=k+127;
+	if(k<=23) m=u<<(23-k);
+	else{
+		k=k-23;
+		m=u>>k;
+		r=u&((1u<<k)-1); h=1u<<(k-1);
+		if(r>h||(r==h&&(m&1))) m=m+1;
+		if(m&0x1000000){
+			m=m>>1; e=e+1;
+		}
+	}
+	return s|(e<<23)|(m&0x7fffff);
 }
 
 
@@ -380,8 +476,18 @@ unsigned float_i2f(int x) {
  *   Max ops: 40
  *   Rating: 10
  */
-int bitCount(int x) {
-  return 18;
+int bitCount(int x){
+	int m=1|(1<<8),s;
+	m=m|(m<<16);
+	s=x&m;
+	s=s+((x>>1)&m);
+	s=s+((x>>2)&m);
+	s=s+((x>>3)&m);
+	s=s+((x>>4)&m);
+	s=s+((x>>5)&m);
+	s=s+((x>>6)&m);
+	s=s+((x>>7)&m);
+	return (s&255)+((s>>8)&255)+((s>>16)&255)+((s>>24)&255);
 }
 
 // P19
@@ -393,7 +499,15 @@ int bitCount(int x) {
  *   Max ops: 34
  *   Rating: 10
  */
-int bitReverse(int x)
-{
-  return 19;
+int bitReverse(int x){
+	int m=255|(255<<8);
+	x=(x<<16)|((x>>16)&m);
+	m=m^(m<<8);
+	x=((x>>8)&m)|((x&m)<<8);
+	m=m^(m<<4);
+	x=((x>>4)&m)|((x&m)<<4);
+	m=m^(m<<2);
+	x=((x>>2)&m)|((x&m)<<2);
+	m=m^(m<<1);
+	return ((x>>1)&m)|((x&m)<<1);
 }
